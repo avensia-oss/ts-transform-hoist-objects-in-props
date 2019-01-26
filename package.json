@@ -1,0 +1,43 @@
+{
+  "name": "@avensia-oss/ts-transform-hoist-objects-in-props",
+  "version": "0.0.1",
+  "description": "A TypeScript custom transformer that hoists object literal in JSX props",
+  "main": "index.js",
+  "keywords": [
+    "TypeScript",
+    "transform",
+    "transformer",
+    "react",
+    "hoist",
+    "prop",
+    "css",
+    "literal"
+  ],
+  "author": "Anders Ekdahl <anders.ekdahl@avensia.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/avensia-oss/ts-transform-hoist-objects-in-props"
+  },
+  "homepage": "https://github.com/avensia-oss/ts-transform-hoist-objects-in-props",
+  "private": false,
+  "scripts": {
+    "test": "jest",
+    "build": "tsc --version && tsc --project \"./\""
+  },
+  "files": [
+    "dist/src/**/*"
+  ],
+  "devDependencies": {
+    "@types/jest": "^23.3.10",
+    "@types/node": "^10.12.18",
+    "jest": "^23.6.0",
+    "prettier": "^1.15.3",
+    "ts-jest": "^23.10.5",
+    "typescript": "^3.2.2",
+    "@types/react": "^16.7.18"
+  },
+  "peerDependencies": {
+    "typescript": "*"
+  },
+  "dependencies": {}
+}
