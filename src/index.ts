@@ -104,14 +104,23 @@ function injectHoistedDeclarations(sourceFile: ts.SourceFile, statementsToAppend
 
 function isLiteral(objectLiteral: ts.ObjectLiteralExpression, typeChecker: ts.TypeChecker) {
   return objectLiteral.properties.every(p => {
-    return (
-      ts.isPropertyAssignment(p) &&
-      (ts.isStringLiteral(p.initializer) ||
-        ts.isNumericLiteral(p.initializer) ||
-        ((ts.isArrowFunction(p.initializer) || ts.isFunctionExpression(p.initializer)) &&
-          functionIsPure(p.initializer, typeChecker)))
-    );
+    return ts.isPropertyAssignment(p) && expressionIsSafeToHoist(p.initializer, typeChecker);
   });
+}
+
+function expressionIsSafeToHoist(expression: ts.Expression, typeChecker: ts.TypeChecker): boolean {
+  return (
+    ts.isStringLiteral(expression) ||
+    ts.isNumericLiteral(expression) ||
+    (ts.isTemplateExpression(expression) &&
+      expression.templateSpans.every(t => expressionIsSafeToHoist(t.expression, typeChecker))) ||
+    ((ts.isArrowFunction(expression) || ts.isFunctionExpression(expression)) &&
+      functionIsPure(expression, typeChecker)) ||
+    (ts.isIdentifier(expression) && identifierIsSafeToHoist(expression, typeChecker)) ||
+    (ts.isBinaryExpression(expression) &&
+      expressionIsSafeToHoist(expression.left, typeChecker) &&
+      expressionIsSafeToHoist(expression.right, typeChecker))
+  );
 }
 
 function functionIsPure(func: ts.ArrowFunction | ts.FunctionExpression, typeChecker: ts.TypeChecker) {
@@ -144,11 +153,11 @@ function functionIsPure(func: ts.ArrowFunction | ts.FunctionExpression, typeChec
   if (!identifiersNotDeclaredInFuncAndNotAParam.length) {
     return true;
   } else {
-    return identifiersNotDeclaredInFuncAndNotAParam.every(i => isSafeToHoist(i, typeChecker));
+    return identifiersNotDeclaredInFuncAndNotAParam.every(i => identifierIsSafeToHoist(i, typeChecker));
   }
 }
 
-function isSafeToHoist(identifier: ts.Identifier, typeChecker: ts.TypeChecker) {
+function identifierIsSafeToHoist(identifier: ts.Identifier, typeChecker: ts.TypeChecker) {
   const symbol = typeChecker.getSymbolAtLocation(identifier);
   if (symbol && symbol.declarations.length) {
     const decl = symbol.declarations[0];

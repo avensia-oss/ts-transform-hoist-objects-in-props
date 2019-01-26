@@ -116,6 +116,29 @@ const __$hoisted_o0 = { background: 'red', color: theme => theme + constant === 
   expectEqual(expected, compile(code));
 });
 
+test('css prop with string expressions with top level const variable gets hoisted', () => {
+  const code = {
+    'component1.tsx': `
+import * as React from 'react';
+const constant = 1;
+const Comp = (props: any) => <div />;
+export const Xyz = (props: any) => <Comp css={{ margin: constant + 'px', padding: \`\${constant}px\` }} />;
+    `,
+  };
+
+  const expected = {
+    'component1.jsx': `
+import * as React from 'react';
+const constant = 1;
+const Comp = (props) => <div />;
+export const Xyz = (props) => <Comp css={__$hoisted_o0}/>;
+const __$hoisted_o0 = { margin: constant + 'px', padding: \`\${constant}px\` };
+    `,
+  };
+
+  expectEqual(expected, compile(code));
+});
+
 test('ternary expression is hoisted', () => {
   const code = {
     'component1.tsx': `
