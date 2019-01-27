@@ -1,6 +1,6 @@
 {
   "name": "@avensia-oss/ts-transform-hoist-objects-in-props",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "A TypeScript custom transformer that hoists object literal in JSX props",
   "main": "index.js",
   "types": "dist/src/index.d.ts",
