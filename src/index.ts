@@ -2,7 +2,7 @@ import * as ts from 'typescript';
 
 export const defaultOptions = {
   /**
-   * This regex lets you filter which props you want to run the transformation on. It should be save to
+   * This regex lets you filter which props you want to run the transformation on. It should be safe to
    * run it on any props that contain object literals, but if you want to white list or black list props
    * this lets you do that.
    */
