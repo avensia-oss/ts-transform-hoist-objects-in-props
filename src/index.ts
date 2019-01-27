@@ -85,7 +85,8 @@ function visitNode(
         ts.isJsxExpression(node.parent.parent) &&
         ts.isJsxAttribute(node.parent.parent.parent) &&
         options.propRegex.test(node.parent.parent.parent.name.text))) &&
-    objectLiteralIsSafeToHoist(node, program.getTypeChecker())
+    objectLiteralIsSafeToHoist(node, program.getTypeChecker()) &&
+    hasFunctionAsParent(node)
   ) {
     const variableName = '__$hoisted_o' + literalsToHoist.length;
     literalsToHoist.push(node);
@@ -93,6 +94,16 @@ function visitNode(
   }
 
   return node;
+}
+
+function hasFunctionAsParent(node: ts.Node) {
+  do {
+    if (ts.isArrowFunction(node) || ts.isFunctionDeclaration(node) || ts.isFunctionExpression(node)) {
+      return true;
+    }
+    node = node.parent;
+  } while (node);
+  return false;
 }
 
 function injectHoistedDeclarations(sourceFile: ts.SourceFile, statementsToAppend: ts.Statement[]): ts.SourceFile {

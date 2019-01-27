@@ -23,6 +23,26 @@ const __$hoisted_o0 = { background: 'red', width: 1, margin: { top: 5, bottom: 5
   expectEqual(expected, compile(code));
 });
 
+test('top level JSX is not hoisted', () => {
+  const code = {
+    'component1.tsx': `
+import * as React from 'react';
+const Comp = (props: any) => <div />;
+export const Xyz = <Comp css={{ background: 'red' }} />;
+    `,
+  };
+
+  const expected = {
+    'component1.jsx': `
+import * as React from 'react';
+const Comp = (props) => <div />;
+export const Xyz = <Comp css={{ background: 'red' }}/>;
+     `,
+  };
+
+  expectEqual(expected, compile(code));
+});
+
 test('css prop with theme function is hoisted', () => {
   const code = {
     'component1.tsx': `
