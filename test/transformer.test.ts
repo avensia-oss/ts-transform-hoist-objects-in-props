@@ -7,7 +7,7 @@ test('simple css prop is hoisted', () => {
     'component1.tsx': `
 import * as React from 'react';
 const Comp = (props: any) => <div />;
-export const Xyz = () => <Comp css={{ background: 'red', width: 1 }} />;
+export const Xyz = () => <Comp css={{ background: 'red', width: 1, margin: { top: 5, bottom: 5 + 'px' } }} />;
     `,
   };
 
@@ -16,7 +16,7 @@ export const Xyz = () => <Comp css={{ background: 'red', width: 1 }} />;
 import * as React from 'react';
 const Comp = (props) => <div />;
 export const Xyz = () => <Comp css={__$hoisted_o0}/>;
-const __$hoisted_o0 = { background: 'red', width: 1 };
+const __$hoisted_o0 = { background: 'red', width: 1, margin: { top: 5, bottom: 5 + 'px' } };
      `,
   };
 

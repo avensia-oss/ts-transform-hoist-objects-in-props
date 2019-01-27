@@ -85,7 +85,7 @@ function visitNode(
         ts.isJsxExpression(node.parent.parent) &&
         ts.isJsxAttribute(node.parent.parent.parent) &&
         options.propRegex.test(node.parent.parent.parent.name.text))) &&
-    isLiteral(node, program.getTypeChecker())
+    objectLiteralIsSafeToHoist(node, program.getTypeChecker())
   ) {
     const variableName = '__$hoisted_o' + literalsToHoist.length;
     literalsToHoist.push(node);
@@ -102,7 +102,7 @@ function injectHoistedDeclarations(sourceFile: ts.SourceFile, statementsToAppend
   };
 }
 
-function isLiteral(objectLiteral: ts.ObjectLiteralExpression, typeChecker: ts.TypeChecker) {
+function objectLiteralIsSafeToHoist(objectLiteral: ts.ObjectLiteralExpression, typeChecker: ts.TypeChecker) {
   return objectLiteral.properties.every(p => {
     return ts.isPropertyAssignment(p) && expressionIsSafeToHoist(p.initializer, typeChecker);
   });
@@ -112,10 +112,11 @@ function expressionIsSafeToHoist(expression: ts.Expression, typeChecker: ts.Type
   return (
     ts.isStringLiteral(expression) ||
     ts.isNumericLiteral(expression) ||
+    (ts.isObjectLiteralExpression(expression) && objectLiteralIsSafeToHoist(expression, typeChecker)) ||
     (ts.isTemplateExpression(expression) &&
       expression.templateSpans.every(t => expressionIsSafeToHoist(t.expression, typeChecker))) ||
     ((ts.isArrowFunction(expression) || ts.isFunctionExpression(expression)) &&
-      functionIsPure(expression, typeChecker)) ||
+      functionIsPureEnough(expression, typeChecker)) ||
     (ts.isIdentifier(expression) && identifierIsSafeToHoist(expression, typeChecker)) ||
     (ts.isBinaryExpression(expression) &&
       expressionIsSafeToHoist(expression.left, typeChecker) &&
@@ -123,7 +124,11 @@ function expressionIsSafeToHoist(expression: ts.Expression, typeChecker: ts.Type
   );
 }
 
-function functionIsPure(func: ts.ArrowFunction | ts.FunctionExpression, typeChecker: ts.TypeChecker) {
+// A function isn't pure if it uses imported variables or top level variables, but in the
+// case of sending such values as props they're pure enough since all changable values
+// must be sent as real props. Any imported or top level values used is considered constants
+// here which might not be 100% correct but correct enough for this use case.
+function functionIsPureEnough(func: ts.ArrowFunction | ts.FunctionExpression, typeChecker: ts.TypeChecker) {
   const usedIdentifiers: ts.Identifier[] = [];
   const localDeclarations: string[] = [];
   const visitFunctionBody = (node: ts.Node) => {
