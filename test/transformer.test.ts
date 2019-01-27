@@ -43,6 +43,70 @@ export const Xyz = <Comp css={{ background: 'red' }}/>;
   expectEqual(expected, compile(code));
 });
 
+test('onclicks that use class methods are not hoisted', () => {
+  const code = {
+    'component1.tsx': `
+import * as React from 'react';
+const Comp = (props: any) => <div />;
+class MyComp extends React.Component<any> {
+    doStuff() {
+        alert('hiyoo!');
+    }
+    render() {
+        return <Comp onClick={() => this.doStuff()}/>;
+    }
+}
+    `,
+  };
+
+  const expected = {
+    'component1.jsx': `
+import * as React from 'react';
+const Comp = (props) => <div />;
+class MyComp extends React.Component {
+    doStuff() {
+        alert('hiyoo!');
+    }
+    render() {
+        return <Comp onClick={() => this.doStuff()}/>;
+    }
+}
+     `,
+  };
+
+  expectEqual(expected, compile(code));
+});
+
+test('function as prop is hoisted', () => {
+  const code = {
+    'component1.tsx': `
+import * as React from 'react';
+import { styleFunc } from './file.ts';
+const Comp = (props: any) => <div />;
+export const Xyz = () => <Comp css={() => ({ background: 'red' })} style={() => styleFunc()} />;
+    `,
+    'file.ts': `
+export const styleFunc = () => ({ background: 'red' });
+    `,
+  };
+
+  const expected = {
+    'component1.jsx': `
+import * as React from 'react';
+import { styleFunc } from './file.ts';
+const Comp = (props) => <div />;
+export const Xyz = () => <Comp css={__$hoisted_o0} style={__$hoisted_o1}/>;
+const __$hoisted_o0 = () => ({ background: 'red' });
+const __$hoisted_o1 = () => styleFunc();
+     `,
+    'file.js': `
+export const styleFunc = () => ({ background: 'red' });
+    `,
+  };
+
+  expectEqual(expected, compile(code));
+});
+
 test('css prop with theme function is hoisted', () => {
   const code = {
     'component1.tsx': `

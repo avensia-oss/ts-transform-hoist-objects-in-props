@@ -10,7 +10,7 @@ export const defaultOptions = {
 };
 export type Options = typeof defaultOptions;
 
-type LiteralsToHoist = ts.ObjectLiteralExpression[];
+type LiteralsToHoist = (ts.ObjectLiteralExpression | ts.ArrowFunction | ts.FunctionExpression)[];
 
 export default function transformer(
   program: ts.Program,
@@ -76,17 +76,22 @@ function visitNode(
   literalsToHoist: LiteralsToHoist,
   options: Options,
 ): any /* TODO */ {
-  if (
-    ts.isObjectLiteralExpression(node) &&
+  const isJsxProp =
+    node.parent &&
     ((ts.isJsxExpression(node.parent) &&
       ts.isJsxAttribute(node.parent.parent) &&
       options.propRegex.test(node.parent.parent.name.text)) ||
       (ts.isConditionalExpression(node.parent) &&
         ts.isJsxExpression(node.parent.parent) &&
         ts.isJsxAttribute(node.parent.parent.parent) &&
-        options.propRegex.test(node.parent.parent.parent.name.text))) &&
-    objectLiteralIsSafeToHoist(node, program.getTypeChecker()) &&
-    hasFunctionAsParent(node)
+        options.propRegex.test(node.parent.parent.parent.name.text)));
+
+  const typeChecker = program.getTypeChecker();
+  if (
+    isJsxProp &&
+    hasFunctionAsParent(node.parent) &&
+    ((ts.isObjectLiteralExpression(node) && objectLiteralIsSafeToHoist(node, typeChecker)) ||
+      ((ts.isArrowFunction(node) || ts.isFunctionExpression(node)) && functionIsPureEnough(node, typeChecker)))
   ) {
     const variableName = '__$hoisted_o' + literalsToHoist.length;
     literalsToHoist.push(node);
@@ -97,6 +102,9 @@ function visitNode(
 }
 
 function hasFunctionAsParent(node: ts.Node) {
+  if (!node) {
+    return false;
+  }
   do {
     if (ts.isArrowFunction(node) || ts.isFunctionDeclaration(node) || ts.isFunctionExpression(node)) {
       return true;
@@ -143,7 +151,7 @@ function functionIsPureEnough(func: ts.ArrowFunction | ts.FunctionExpression, ty
   const usedIdentifiers: ts.Identifier[] = [];
   const localDeclarations: string[] = [];
   const visitFunctionBody = (node: ts.Node) => {
-    if (ts.isIdentifier(node) && !(ts.isPropertyAccessExpression(node.parent) && node.parent.name === node)) {
+    if (ts.isIdentifier(node) && !(ts.isPropertyAssignment(node.parent) && node.parent.name === node)) {
       usedIdentifiers.push(node);
     }
     if (ts.isVariableDeclaration(node)) {
@@ -173,6 +181,9 @@ function functionIsPureEnough(func: ts.ArrowFunction | ts.FunctionExpression, ty
   }
 }
 
+// The only identifiers we consider safe to hoist are variables that comes from an
+// import statement, and top level const declarations. Any other identifier used
+// causes a bail out.
 function identifierIsSafeToHoist(identifier: ts.Identifier, typeChecker: ts.TypeChecker) {
   const symbol = typeChecker.getSymbolAtLocation(identifier);
   if (symbol && symbol.declarations.length) {
@@ -181,6 +192,7 @@ function identifierIsSafeToHoist(identifier: ts.Identifier, typeChecker: ts.Type
       ts.isImportSpecifier(decl) ||
       (ts.isVariableDeclaration(decl) &&
         ts.isVariableDeclarationList(decl.parent) &&
+        decl.parent.flags & ts.NodeFlags.Const &&
         ts.isVariableStatement(decl.parent.parent) &&
         ts.isSourceFile(decl.parent.parent.parent))
     ) {
