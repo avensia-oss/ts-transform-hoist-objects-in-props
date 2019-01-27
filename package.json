@@ -23,6 +23,7 @@
   "private": false,
   "scripts": {
     "test": "jest",
+    "prepublishOnly": "yarn build",
     "build": "tsc --version && tsc --project \"./\""
   },
   "files": [
