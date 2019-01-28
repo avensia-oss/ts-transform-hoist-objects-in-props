@@ -123,8 +123,22 @@ function injectHoistedDeclarations(sourceFile: ts.SourceFile, statementsToAppend
 
 function objectLiteralIsSafeToHoist(objectLiteral: ts.ObjectLiteralExpression, typeChecker: ts.TypeChecker) {
   return objectLiteral.properties.every(p => {
-    return ts.isPropertyAssignment(p) && expressionIsSafeToHoist(p.initializer, typeChecker);
+    return (
+      ts.isPropertyAssignment(p) &&
+      propertyNameIsSafeToHoist(p.name, typeChecker) &&
+      expressionIsSafeToHoist(p.initializer, typeChecker)
+    );
   });
+}
+
+function propertyNameIsSafeToHoist(name: ts.PropertyName, typeChecker: ts.TypeChecker) {
+  if (ts.isStringLiteral(name) || ts.isNumericLiteral(name) || ts.isIdentifier(name)) {
+    return true;
+  }
+  if (ts.isComputedPropertyName(name)) {
+    return expressionIsSafeToHoist(name.expression, typeChecker);
+  }
+  return false;
 }
 
 function expressionIsSafeToHoist(expression: ts.Expression, typeChecker: ts.TypeChecker): boolean {
@@ -137,6 +151,7 @@ function expressionIsSafeToHoist(expression: ts.Expression, typeChecker: ts.Type
     ((ts.isArrowFunction(expression) || ts.isFunctionExpression(expression)) &&
       functionIsPureEnough(expression, typeChecker)) ||
     (ts.isIdentifier(expression) && identifierIsSafeToHoist(expression, typeChecker)) ||
+    (ts.isPropertyAccessExpression(expression) && expressionIsSafeToHoist(expression.expression, typeChecker)) ||
     (ts.isBinaryExpression(expression) &&
       expressionIsSafeToHoist(expression.left, typeChecker) &&
       expressionIsSafeToHoist(expression.right, typeChecker))
@@ -151,7 +166,11 @@ function functionIsPureEnough(func: ts.ArrowFunction | ts.FunctionExpression, ty
   const usedIdentifiers: ts.Identifier[] = [];
   const localDeclarations: string[] = [];
   const visitFunctionBody = (node: ts.Node) => {
-    if (ts.isIdentifier(node) && !(ts.isPropertyAssignment(node.parent) && node.parent.name === node)) {
+    if (
+      ts.isIdentifier(node) &&
+      !(ts.isPropertyAssignment(node.parent) && node.parent.name === node) &&
+      !(ts.isPropertyAccessExpression(node.parent) && node.parent.name === node)
+    ) {
       usedIdentifiers.push(node);
     }
     if (ts.isVariableDeclaration(node)) {

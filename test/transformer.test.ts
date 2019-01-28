@@ -200,6 +200,29 @@ const __$hoisted_o0 = { background: 'red', color: theme => theme + constant === 
   expectEqual(expected, compile(code));
 });
 
+test('css prop with theme function that uses top level const object gets hoisted', () => {
+  const code = {
+    'component1.tsx': `
+import * as React from 'react';
+const constant = { dark: 'black', light: 'white' };
+const Comp = (props: any) => <div />;
+export const Xyz = (props: any) => <Comp css={{ background: theme => theme === constant.dark ? 'black' : 'white', color: theme => constant[theme] }} />;
+    `,
+  };
+
+  const expected = {
+    'component1.jsx': `
+import * as React from 'react';
+const constant = { dark: 'black', light: 'white' };
+const Comp = (props) => <div />;
+export const Xyz = (props) => <Comp css={__$hoisted_o0}/>;
+const __$hoisted_o0 = { background: theme => theme === constant.dark ? 'black' : 'white', color: theme => constant[theme] };
+    `,
+  };
+
+  expectEqual(expected, compile(code));
+});
+
 test('css prop with string expressions with top level const variable gets hoisted', () => {
   const code = {
     'component1.tsx': `
@@ -217,6 +240,73 @@ const constant = 1;
 const Comp = (props) => <div />;
 export const Xyz = (props) => <Comp css={__$hoisted_o0}/>;
 const __$hoisted_o0 = { margin: constant + 'px', padding: \`\${constant}px\` };
+    `,
+  };
+
+  expectEqual(expected, compile(code));
+});
+
+test('css prop with string expressions with top level const object gets hoisted', () => {
+  const code = {
+    'component1.tsx': `
+import * as React from 'react';
+const constant = { padding: 5, margin: 5 };
+const Comp = (props: any) => <div />;
+export const Xyz = (props: any) => <Comp css={{ margin: constant.margin + 'px', padding: \`\${constant.padding}px\` }} />;
+    `,
+  };
+
+  const expected = {
+    'component1.jsx': `
+import * as React from 'react';
+const constant = { padding: 5, margin: 5 };
+const Comp = (props) => <div />;
+export const Xyz = (props) => <Comp css={__$hoisted_o0}/>;
+const __$hoisted_o0 = { margin: constant.margin + 'px', padding: \`\${constant.padding}px\` };
+    `,
+  };
+
+  expectEqual(expected, compile(code));
+});
+
+test('css prop with prop value used does not get hoisted', () => {
+  const code = {
+    'component1.tsx': `
+import * as React from 'react';
+const constant = 1;
+const Comp = (props: any) => <div />;
+export const Xyz = (props: any) => <Comp css={{ margin: constant + 'px', padding: \`\${props.padding}px\` }} />;
+    `,
+  };
+
+  const expected = {
+    'component1.jsx': `
+import * as React from 'react';
+const constant = 1;
+const Comp = (props) => <div />;
+export const Xyz = (props) => <Comp css={{ margin: constant + 'px', padding: \`\${props.padding}px\` }}/>;
+    `,
+  };
+
+  expectEqual(expected, compile(code));
+});
+
+test('css prop with prop value as key used does not get hoisted', () => {
+  const code = {
+    'component1.tsx': `
+import * as React from 'react';
+const constant = 1;
+const Comp = (props: any) => <div />;
+export const Xyz = (props: any) => <Comp css={{ margin: constant + 'px', [props.padding]: \`\${constant}px\` }} />;
+    `,
+  };
+
+  const expected = {
+    'component1.jsx': `
+import * as React from 'react';
+const constant = 1;
+const Comp = (props) => <div />;
+export const Xyz = (props) => <Comp css={{ margin: constant + 'px', [props.padding]: \`\${constant}px\` }}/>;
     `,
   };
 
