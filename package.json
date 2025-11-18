@@ -29,6 +29,7 @@
   "files": [
     "dist/src/**/*"
   ],
+  "packageManager": "yarn@4.10.3",
   "devDependencies": {
     "@types/jest": "^23.3.10",
     "@types/node": "^10.12.18",
