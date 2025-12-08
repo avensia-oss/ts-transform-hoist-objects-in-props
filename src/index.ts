@@ -48,16 +48,23 @@ function visitNodeAndChildren(
 ): ts.Node | ts.Node[] {
   const transformedNode = ts.visitEachChild(
     visitNode(node, program, literalsToHoist, options),
-    childNode => visitNodeAndChildren(childNode, program, context, literalsToHoist, options),
+    (childNode) => visitNodeAndChildren(childNode, program, context, literalsToHoist, options),
     context,
   );
 
   if (ts.isSourceFile(transformedNode) && literalsToHoist.length) {
-    const declarations = literalsToHoist.map(literal => {
-      return ts.createVariableStatement(
+    const declarations = literalsToHoist.map((literal) => {
+      return ts.factory.createVariableStatement(
         undefined,
-        ts.createVariableDeclarationList(
-          [ts.createVariableDeclaration('__$hoisted_o' + literalsToHoist.indexOf(literal), undefined, literal)],
+        ts.factory.createVariableDeclarationList(
+          [
+            ts.factory.createVariableDeclaration(
+              '__$hoisted_o' + literalsToHoist.indexOf(literal),
+              undefined,
+              undefined,
+              literal,
+            ),
+          ],
           ts.NodeFlags.Const,
         ),
       );
@@ -80,11 +87,11 @@ function visitNode(
     node.parent &&
     ((ts.isJsxExpression(node.parent) &&
       ts.isJsxAttribute(node.parent.parent) &&
-      options.propRegex.test(node.parent.parent.name.text)) ||
+      options.propRegex.test(getJsxAttributeNameText(node.parent.parent.name))) ||
       (ts.isConditionalExpression(node.parent) &&
         ts.isJsxExpression(node.parent.parent) &&
         ts.isJsxAttribute(node.parent.parent.parent) &&
-        options.propRegex.test(node.parent.parent.parent.name.text)));
+        options.propRegex.test(getJsxAttributeNameText(node.parent.parent.parent.name))));
 
   const typeChecker = program.getTypeChecker();
   if (
@@ -95,7 +102,7 @@ function visitNode(
   ) {
     const variableName = '__$hoisted_o' + literalsToHoist.length;
     literalsToHoist.push(node);
-    return ts.createIdentifier(variableName);
+    return ts.factory.createIdentifier(variableName);
   }
 
   return node;
@@ -117,12 +124,12 @@ function hasFunctionAsParent(node: ts.Node) {
 function injectHoistedDeclarations(sourceFile: ts.SourceFile, statementsToAppend: ts.Statement[]): ts.SourceFile {
   return {
     ...sourceFile,
-    statements: ts.createNodeArray([...sourceFile.statements, ...statementsToAppend]),
+    statements: ts.factory.createNodeArray([...sourceFile.statements, ...statementsToAppend]),
   };
 }
 
 function objectLiteralIsSafeToHoist(objectLiteral: ts.ObjectLiteralExpression, typeChecker: ts.TypeChecker) {
-  return objectLiteral.properties.every(p => {
+  return objectLiteral.properties.every((p) => {
     return (
       ts.isPropertyAssignment(p) &&
       propertyNameIsSafeToHoist(p.name, typeChecker) &&
@@ -147,7 +154,7 @@ function expressionIsSafeToHoist(expression: ts.Expression, typeChecker: ts.Type
     ts.isNumericLiteral(expression) ||
     (ts.isObjectLiteralExpression(expression) && objectLiteralIsSafeToHoist(expression, typeChecker)) ||
     (ts.isTemplateExpression(expression) &&
-      expression.templateSpans.every(t => expressionIsSafeToHoist(t.expression, typeChecker))) ||
+      expression.templateSpans.every((t) => expressionIsSafeToHoist(t.expression, typeChecker))) ||
     ((ts.isArrowFunction(expression) || ts.isFunctionExpression(expression)) &&
       functionIsPureEnough(expression, typeChecker)) ||
     (ts.isIdentifier(expression) && identifierIsSafeToHoist(expression, typeChecker)) ||
@@ -177,7 +184,7 @@ function functionIsPureEnough(func: ts.ArrowFunction | ts.FunctionExpression, ty
       if (ts.isIdentifier(node.name)) {
         localDeclarations.push(node.name.text);
       } else if (ts.isArrayBindingPattern(node.name) || ts.isObjectBindingPattern(node.name)) {
-        node.name.elements.forEach(e => {
+        node.name.elements.forEach((e) => {
           if (ts.isBindingElement(e) && ts.isIdentifier(e.name)) {
             localDeclarations.push(e.name.text);
           }
@@ -188,15 +195,15 @@ function functionIsPureEnough(func: ts.ArrowFunction | ts.FunctionExpression, ty
   };
   ts.forEachChild(func.body, visitFunctionBody);
   const params = getParamNames(func.parameters);
-  const identifiersNotDeclaredInFunc = usedIdentifiers.filter(i => localDeclarations.indexOf(i.text) === -1);
+  const identifiersNotDeclaredInFunc = usedIdentifiers.filter((i) => localDeclarations.indexOf(i.text) === -1);
   const identifiersNotDeclaredInFuncAndNotAParam = identifiersNotDeclaredInFunc.filter(
-    i => params.indexOf(i.text) === -1,
+    (i) => params.indexOf(i.text) === -1,
   );
 
   if (!identifiersNotDeclaredInFuncAndNotAParam.length) {
     return true;
   } else {
-    return identifiersNotDeclaredInFuncAndNotAParam.every(i => identifierIsSafeToHoist(i, typeChecker));
+    return identifiersNotDeclaredInFuncAndNotAParam.every((i) => identifierIsSafeToHoist(i, typeChecker));
   }
 }
 
@@ -205,7 +212,7 @@ function functionIsPureEnough(func: ts.ArrowFunction | ts.FunctionExpression, ty
 // causes a bail out.
 function identifierIsSafeToHoist(identifier: ts.Identifier, typeChecker: ts.TypeChecker) {
   const symbol = typeChecker.getSymbolAtLocation(identifier);
-  if (symbol && symbol.declarations.length) {
+  if (symbol && symbol.declarations?.length) {
     const decl = symbol.declarations[0];
     if (
       ts.isImportSpecifier(decl) ||
@@ -223,11 +230,11 @@ function identifierIsSafeToHoist(identifier: ts.Identifier, typeChecker: ts.Type
 
 function getParamNames(params: ts.NodeArray<ts.ParameterDeclaration>) {
   const paramNames: string[] = [];
-  params.forEach(p => {
+  params.forEach((p) => {
     if (ts.isIdentifier(p.name)) {
       paramNames.push(p.name.text);
-    } else if (ts.isArrayBindingPattern(p) || ts.isObjectBindingPattern(p)) {
-      p.elements.forEach(e => {
+    } else if (ts.isArrayBindingPattern(p.name) || ts.isObjectBindingPattern(p.name)) {
+      p.name.elements.forEach((e) => {
         if (ts.isBindingElement(e) && ts.isIdentifier(e.name)) {
           paramNames.push(e.name.text);
         }
@@ -235,4 +242,8 @@ function getParamNames(params: ts.NodeArray<ts.ParameterDeclaration>) {
     }
   });
   return paramNames;
+}
+
+function getJsxAttributeNameText(name: ts.JsxAttributeName): string {
+  return ts.isIdentifier(name) ? name.text : name.getText();
 }
