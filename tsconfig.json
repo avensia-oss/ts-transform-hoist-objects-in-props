@@ -3,7 +3,7 @@
     "target": "es5",
     "module": "commonjs",
     "strict": true,
-    "suppressImplicitAnyIndexErrors": true,
+    "noImplicitAny": false,
     "noEmitOnError": true,
     "declaration": true,
     "noImplicitReturns": true,

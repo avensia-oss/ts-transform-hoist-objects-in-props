@@ -20,7 +20,6 @@
     "url": "https://github.com/avensia-oss/ts-transform-hoist-objects-in-props"
   },
   "homepage": "https://github.com/avensia-oss/ts-transform-hoist-objects-in-props",
-  "private": false,
   "scripts": {
     "test": "jest",
     "prepublishOnly": "yarn build",
@@ -31,16 +30,15 @@
   ],
   "packageManager": "yarn@4.10.3",
   "devDependencies": {
-    "@types/jest": "^23.3.10",
-    "@types/node": "^10.12.18",
-    "@types/react": "^16.7.18",
-    "jest": "^23.6.0",
-    "prettier": "^1.15.3",
-    "ts-jest": "^23.10.5",
-    "typescript": "^3.2.2"
+    "@types/jest": "^29.5.12",
+    "@types/node": "^20.11.24",
+    "@types/react": "^18.3.3",
+    "jest": "^29.7.0",
+    "prettier": "^3.3.3",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.6.3"
   },
   "peerDependencies": {
     "typescript": "*"
-  },
-  "dependencies": {}
+  }
 }
