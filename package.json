@@ -40,5 +40,8 @@
   },
   "peerDependencies": {
     "typescript": "*"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
