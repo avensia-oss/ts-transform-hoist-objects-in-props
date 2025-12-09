@@ -26,6 +26,10 @@ yarn test --watch
 
 These commands should work if you use npm as well.
 
+# Publishing
+Set your npm access token as an ENV variable "YARN_NPM_AUTH_TOKEN" and then run `yarn npm publish`
+
+
 # Changing
 
 Most of the information you need to contribute code changes can [be found here](https://guides.github.com/activities/contributing-to-open-source/). In short: fork, make your changes, and submit a pull request.
